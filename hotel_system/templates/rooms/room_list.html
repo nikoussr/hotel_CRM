@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Управление номерами{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Управление номерами</h1>
+    <div>
+        <a href="{% url 'rooms:room_create' %}" class="btn btn-success">
+            Добавить номер
+        </a>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">
+            Назад к календарю
+        </a>
+    </div>
+</div>
+
+<!-- Фильтры -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Категория</label>
+                <select name="category" class="form-control">
+                    <option value="">Все категории</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"i" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Статус</label>
+                <select name="status" class="form-control">
+                    <option value="">Все статусы</option>
+                    {% for status in room_statuses %}
+                    <option value="{{ status.0 }}" {% if selected_status == status.0 %}selected{% endif %}>
+                        {{ status.1 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Вместимость</label>
+                <select name="capacity" class="form-control">
+                    <option value="">Любая</option>
+                    <option value="1" {% if selected_capacity == "1" %}selected{% endif %}>1 человек</option>
+                    <option value="2" {% if selected_capacity == "2" %}selected{% endif %}>2 человека</option>
+                    <option value="3" {% if selected_capacity == "3" %}selected{% endif %}>3 человека</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Применить фильтры</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Список номеров -->
+<div class="row">
+    {% for room in rooms %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">
+                            <a href="{% url 'rooms:room_detail' room.id %}" class="text-decoration-none">
+                                Номер {{ room.number }}
+                            </a>
+                        </h5>
+                        <span class="badge {% if room.status == 'available' %}status-available{% elif room.status == 'booked' %}bg-info text-white{% elif room.status == 'occupied' %}bg-success text-white{% else %}bg-secondary text-white{% endif %}">
+                            {{ room.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Действия
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'rooms:room_detail' room.id %}">Просмотр</a></li>
+                            <li><a class="dropdown-item" href="{% url 'rooms:room_update' room.id %}">Редактировать</a></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'rooms:room_delete' room.id %}">Удалить</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small">Категория:</div>
+                    <div class="fw-medium">{{ room.category.name }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-muted small">Вместимость:</div>
+                        <div class="fw-medium">{{ room.capacity }} чел.</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Детская кровать:</div>
+                        <div class="fw-medium">
+                            {% if room.has_child_bed %}Да{% else %}Нет{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small">Цена за сутки:</div>
+                    <div class="fw-medium">
+                        от {{ room.price_monday|default:"0" }} руб.
+                    </div>
+                </div>
+
+                {% if room.description %}
+                <div class="mb-3">
+                    <div class="text-muted small">Описание:</div>
+                    <div class="small">{{ room.description|truncatechars:100 }}</div>
+                </div>
+                {% endif %}
+
+                <a href="{% url 'rooms:room_detail' room.id %}" class="btn btn-outline-primary btn-sm w-100">
+                    Подробнее
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">Номера не найдены</h4>
+                <p class="text-muted mb-4">Добавьте первый номер или измените фильтры</p>
+                <a href="{% url 'rooms:room_create' %}" class="btn btn-success">
+                    Добавить номер
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

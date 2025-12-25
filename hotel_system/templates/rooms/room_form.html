@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">{{ title }}</h4>
+                    <a href="{% url 'rooms:room_list' %}" class="btn btn-outline-secondary btn-sm">
+                        Отмена
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Исправьте ошибки:</strong>
+                        <ul class="mb-0">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                            <li>{{ field }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Основная информация</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Номер комнаты *</label>
+                                        {{ form.number }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Категория *</label>
+                                        {{ form.category }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Статус *</label>
+                                        {{ form.status }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Вместимость *</label>
+                                        {{ form.capacity }}
+                                        <div class="form-text">Максимум 3 человека</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.has_child_bed }}
+                                            <label class="form-check-label" for="{{ form.has_child_bed.id_for_label }}">
+                                                Возможность установки детской кровати
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Цена детской кровати (руб./сутки)</label>
+                                        {{ form.child_bed_price }}
+                                        <div class="form-text">Максимум 1000 руб./сутки</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Описание</label>
+                                        {{ form.description }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Цены по дням недели (руб./сутки)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Понедельник</label>
+                                            {{ form.price_monday }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Вторник</label>
+                                            {{ form.price_tuesday }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Среда</label>
+                                            {{ form.price_wednesday }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Четверг</label>
+                                            {{ form.price_thursday }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Пятница</label>
+                                            {{ form.price_friday }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Суббота</label>
+                                            {{ form.price_saturday }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Воскресенье</label>
+                                            {{ form.price_sunday }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="reset" class="btn btn-outline-secondary">
+                            Сбросить
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            Сохранить номер
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

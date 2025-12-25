@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% load custom_filter %}
+
+{% block title %}Календарь занятости{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Календарь занятости</h1>
+    <div>
+        <a href="{% url 'admin:bookings_booking_add' %}" class="btn btn-success btn-sm">
+            Новое бронирование
+        </a>
+        <a href="{% url 'bookings:quick_booking' %}" class="btn btn-success btn-sm">
+            Быстрое бронирование
+        </a>
+        <a href="{% url 'admin:rooms_room_add' %}" class="btn btn-primary btn-sm">
+            Добавить номер
+        </a>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted small">Заезды сегодня</h5>
+                <p class="card-text display-6 text-primary">{{ checkins_today }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted small">Выселения сегодня</h5>
+                <p class="card-text display-6 text-warning">{{ checkouts_today }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted small">Занято номеров</h5>
+                <p class="card-text display-6 text-success">{{ occupied_rooms }}/{{ total_rooms }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted small">Забронировано</h5>
+                <p class="card-text display-6 text-info">{{ booked_rooms }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Основной календарь -->
+    <div class="col-lg-9">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Неделя: {{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }}</h5>
+                    <div class="btn-group">
+                        <a href="?start_date={{ start_date|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
+                            Текущая неделя
+                        </a>
+                        <a href="?start_date={{ prev_week|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
+                            Назад
+                        </a>
+                        <a href="?start_date={{ next_week|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
+                            Вперед
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0" id="calendar-table">
+                        <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px; min-width: 120px;" class="align-middle">Номер</th>
+                            {% for day in week_dates %}
+                            <th class="text-center align-middle {% if day == today %}table-primary{% endif %}"
+                                style="min-width: 100px;">
+                                <div class="small text-muted">{{ day|date:"D" }}</div>
+                                <div class="fw-bold">{{ day|date:"d.m" }}</div>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for room in rooms %}
+                        <tr>
+                            <td class="align-middle">
+                                <div class="fw-bold">{{ room.number }}</div>
+                                <div class="small text-muted">
+                                    {{ room.category }} • {{ room.capacity }} чел.
+                                    {% if room.has_child_bed %}(дет. кровать){% endif %}
+                                </div>
+                                <span class="badge {{ room.status|get_status_class }}">
+                                    {{ room.get_status_display }}
+                                </span>
+                            </td>
+
+                            {% for day in room.days %}
+                            <td class="text-center align-middle p-2"
+                                style="height: 80px; vertical-align: middle;">
+
+                                {% if day.status == 'available' %}
+                                <span class="badge status-available">Свободен</span>
+
+                                {% elif day.status == 'confirmed' %}
+                                <div class="calendar-booking confirmed p-1 rounded">
+                                    <div class="small fw-bold">{{ day.guest_name|truncatechars:15 }}</div>
+                                    <div class="small text-muted">Бронь</div>
+                                    {% if day.is_checkin %}
+                                    <form method="post" action="{% url 'core:quick_checkin' day.booking_id %}"
+                                          class="mt-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-xs">
+                                            Заселить
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+
+                                {% elif day.status == 'pending' %}
+                                <div class="calendar-booking pending p-1 rounded">
+                                    <div class="small fw-bold">{{ day.guest_name|truncatechars:15 }}</div>
+                                    <div class="small">Ожидает</div>
+                                </div>
+
+                                {% elif day.status == 'active' %}
+                                <div class="calendar-booking active p-1 rounded">
+                                    <div class="small fw-bold">{{ day.guest_name|truncatechars:15 }}</div>
+                                    <div class="small">Проживает</div>
+                                    {% if day.is_checkout %}
+                                    <form method="post" action="{% url 'core:quick_checkout' day.booking_id %}"
+                                          class="mt-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-warning btn-xs">
+                                            Выселить
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+
+                                {% elif day.status == 'cancelled' %}
+                                <span class="badge bg-secondary">Отменено</span>
+
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                Нет номеров для отображения.
+                                <a href="{% url 'admin:rooms_room_add' %}">Добавьте первый номер</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Боковая панель с информацией -->
+    <div class="col-lg-3 mt-4 mt-lg-0">
+        <!-- Текущие гости -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0">
+                <h6 class="mb-0">Текущие гости</h6>
+            </div>
+            <div class="card-body p-0">
+                {% for guest in current_guests %}
+                <div class="border-bottom p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold">{{ guest.guest }}</div>
+                            <div class="small text-muted">Номер {{ guest.room.number }}</div>
+                            <div class="small">
+                                Заехал: {{ guest.actual_check_in|date:"d.m H:i"|default:"—" }}
+                            </div>
+                        </div>
+                        <a href="{% url 'admin:bookings_booking_change' guest.id %}"
+                           class="btn btn-outline-primary btn-sm">
+                            Детали
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">
+                    Нет текущих гостей
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Ближайшие заезды -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0">
+                <h6 class="mb-0">Ближайшие заезды</h6>
+            </div>
+            <div class="card-body p-0">
+                {% for booking in upcoming_bookings %}
+                <div class="border-bottom p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold">{{ booking.guest }}</div>
+                            <div class="small text-muted">
+                                {{ booking.check_in_date|date:"d.m" }} → {{ booking.check_out_date|date:"d.m" }}
+                            </div>
+                            <div class="small">Номер {{ booking.room.number }}</div>
+                        </div>
+                        <span class="badge bg-info">
+                            {{ booking.total_price }} руб.
+                        </span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">
+                    Нет ближайших заездов
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Легенда -->
+<div class="mt-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h6 class="mb-3">Легенда статусов</h6>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge status-available">Свободен</span>
+                <span class="badge bg-info text-white">Забронирован</span>
+                <span class="badge bg-success text-white">Проживает</span>
+                <span class="badge bg-warning text-white">Ожидает заезда</span>
+                <span class="badge bg-secondary">На обслуживании</span>
+                <span class="badge bg-danger">Отменено</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calendar-booking {
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    .calendar-booking:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .calendar-booking.confirmed {
+        background-color: #e8f4fd;
+        border-color: #b8daff;
+    }
+    .calendar-booking.pending {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+    }
+    .calendar-booking.active {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    .btn-xs {
+        padding: 0.1rem 0.4rem;
+        font-size: 0.75rem;
+        line-height: 1.2;
+        border-radius: 0.2rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработка кликов по ячейкам календаря
+        document.querySelectorAll('.calendar-booking').forEach(function(cell) {
+            cell.addEventListener('click', function(e) {
+                if (!e.target.closest('button') && !e.target.closest('form')) {
+                    const bookingId = this.closest('td').querySelector('form')?.action?.split('/').filter(Boolean).pop();
+                    if (bookingId) {
+                        window.location.href = `/admin/bookings/booking/${bookingId}/change/`;
+                    }
+                }
+            });
+        });
+
+        // Подсказки при наведении
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

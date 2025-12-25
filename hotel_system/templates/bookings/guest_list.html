@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Управление гостями{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Управление гостями</h1>
+    <div>
+        <a href="{% url 'bookings:guest_create' %}" class="btn btn-success">
+            Добавить гостя
+        </a>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">
+            Назад к календарю
+        </a>
+    </div>
+</div>
+
+<!-- Поиск -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row">
+            <div class="col-md-8">
+                <input type="text"
+                       name="search"
+                       class="form-control"
+                       placeholder="Поиск по фамилии, имени, телефону или email..."
+                       value="{{ search_query }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">Найти</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Список гостей -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ФИО</th>
+                        <th>Телефон</th>
+                        <th>Email</th>
+                        <th>Бронирований</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for guest in guests %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ guest.last_name }} {{ guest.first_name }} {{ guest.middle_name }}</div>
+                            <div class="small text-muted">Добавлен: {{ guest.created_at|date:"d.m.Y" }}</div>
+                        </td>
+                        <td>{{ guest.phone }}</td>
+                        <td>{{ guest.email|default:"—" }}</td>
+                        <td>
+                            <span class="badge bg-info">
+                                {{ guest.bookings.count }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'bookings:guest_detail' guest.id %}" class="btn btn-outline-primary">
+                                    Просмотр
+                                </a>
+                                <a href="{% url 'bookings:guest_update' guest.id %}" class="btn btn-outline-secondary">
+                                    Редактировать
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            {% if search_query %}
+                            Гости не найдены. Попробуйте другой поисковый запрос.
+                            {% else %}
+                            Гости не найдены. <a href="{% url 'bookings:guest_create' %}">Добавьте первого гостя</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Бронирование #{{ booking.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-secondary btn-sm me-2">
+            ← К списку бронирований
+        </a>
+        <h1 class="h3 d-inline mb-0">Бронирование #{{ booking.id }}</h1>
+    </div>
+    <div>
+        <a href="{% url 'admin:bookings_booking_change' booking.id %}" class="btn btn-primary btn-sm">
+            Редактировать
+        </a>
+        <a href="{% url 'bookings:quick_booking' %}?room_id={{ booking.room.id }}" class="btn btn-success btn-sm">
+            Новое похожее
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Основная информация -->
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Информация о бронировании</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="text-muted small">Гость:</div>
+                        <div class="fw-bold">
+                            <a href="{% url 'bookings:guest_detail' booking.guest.id %}" class="text-decoration-none">
+                                {{ booking.guest }}
+                            </a>
+                        </div>
+                        <div class="small">{{ booking.guest.phone }}</div>
+                        {% if booking.guest.email %}
+                        <div class="small">{{ booking.guest.email }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="text-muted small">Номер:</div>
+                        <div class="fw-bold">
+                            <a href="{% url 'rooms:room_detail' booking.room.id %}" class="text-decoration-none">
+                                {{ booking.room.number }} ({{ booking.room.category.name }})
+                            </a>
+                        </div>
+                        <div class="small">
+                            {{ booking.room.capacity }} чел. • 
+                            {% if booking.room.has_child_bed %}дет. кровать доступна{% else %}без дет. кровати{% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="text-muted small">Даты проживания:</div>
+                        <div class="fw-bold">
+                            {{ booking.check_in_date|date:"d.m.Y" }} → {{ booking.check_out_date|date:"d.m.Y" }}
+                        </div>
+                        <div class="small">{{ booking.get_nights_count }} ночей</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="text-muted small">Статус:</div>
+                        <div>
+                            <span class="badge 
+                                {% if booking.status == 'confirmed' %}bg-info text-white
+                                {% elif booking.status == 'pending_checkin' %}bg-warning text-white
+                                {% elif booking.status == 'active' %}bg-success text-white
+                                {% elif booking.status == 'completed' %}bg-light text-dark
+                                {% else %}bg-danger text-white{% endif %} fs-6">
+                                {{ booking.get_status_display }}
+                            </span>
+                        </div>
+                        {% if booking.actual_check_in %}
+                        <div class="small">Заехал: {{ booking.actual_check_in|date:"d.m.Y H:i" }}</div>
+                        {% endif %}
+                        {% if booking.actual_check_out %}
+                        <div class="small">Выселился: {{ booking.actual_check_out|date:"d.m.Y H:i" }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="text-muted small">Гости:</div>
+                        <div class="fw-bold">
+                            {{ booking.adults }} взрослых, {{ booking.children }} детей
+                        </div>
+                        {% if booking.with_child_bed %}
+                        <div class="small text-success">Детская кровать: Да</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="text-muted small">Создано:</div>
+                        <div>{{ booking.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                </div>
+                
+                {% if booking.notes %}
+                <div class="mb-3">
+                    <div class="text-muted small">Примечания:</div>
+                    <div class="border rounded p-3 bg-light">
+                        {{ booking.notes|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Детализация стоимости -->
+        {% if daily_prices %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Детализация стоимости</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Дата</th>
+                                <th>День недели</th>
+                                <th>Стоимость номера</th>
+                                <th>Детская кровать</th>
+                                <th>Итого за день</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day in daily_prices %}
+                            <tr>
+                                <td>{{ day.date|date:"d.m.Y" }}</td>
+                                <td>
+                                    {% if day.day_of_week == 0 %}Понедельник
+                                    {% elif day.day_of_week == 1 %}Вторник
+                                    {% elif day.day_of_week == 2 %}Среда
+                                    {% elif day.day_of_week == 3 %}Четверг
+                                    {% elif day.day_of_week == 4 %}Пятница
+                                    {% elif day.day_of_week == 5 %}Суббота
+                                    {% else %}Воскресенье{% endif %}
+                                </td>
+                                <td>{{ day.price }} руб.</td>
+                                <td>
+                                    {% if booking.with_child_bed %}
+                                    {{ booking.room.child_bed_price }} руб.
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.with_child_bed %}
+                                    {{ day.price|add:booking.room.child_bed_price }} руб.
+                                    {% else %}
+                                    {{ day.price }} руб.
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-light">
+                                <td colspan="4" class="text-end fw-bold">Итого без скидки:</td>
+                                <td class="fw-bold">{{ booking.base_price|add:booking.child_bed_price }} руб.</td>
+                            </tr>
+                            {% if booking.discount_amount > 0 %}
+                            <tr class="table-light">
+                                <td colspan="4" class="text-end fw-bold">Скидка:</td>
+                                <td class="fw-bold text-danger">-{{ booking.discount_amount }} руб.</td>
+                            </tr>
+                            {% endif %}
+                            <tr class="table-success">
+                                <td colspan="4" class="text-end fw-bold">К оплате:</td>
+                                <td class="fw-bold fs-5">{{ booking.total_price }} руб.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Боковая панель -->
+    <div class="col-md-4">
+        <!-- Быстрые действия -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if booking.status == 'pending_checkin' %}
+                    <form method="post" action="{% url 'core:quick_checkin' booking.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            Зарегистрировать заезд
+                        </button>
+                    </form>
+                    {% elif booking.status == 'active' %}
+                    <form method="post" action="{% url 'core:quick_checkout' booking.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning w-100">
+                            Зарегистрировать выезд
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    {% if booking.status in 'confirmed pending_checkin' %}
+                    <form method="post" action="{% url 'core:quick_cancel' booking.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger w-100" 
+                                onclick="return confirm('Вы уверены, что хотите отменить это бронирование?')">
+                            Отменить бронирование
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <a href="{% url 'admin:bookings_booking_change' booking.id %}" class="btn btn-primary w-100">
+                        Полное редактирование
+                    </a>
+                    
+                    <a href="{% url 'bookings:quick_booking' %}?room_id={{ booking.room.id }}&check_in={{ booking.check_in_date|date:'Y-m-d' }}" 
+                       class="btn btn-outline-success w-100">
+                        Создать похожее
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Платежи -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Платежи</h5>
+                    <span class="badge {% if balance <= 0 %}bg-success{% else %}bg-warning{% endif %}">
+                        Баланс: {{ balance }} руб.
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if payments %}
+                <div class="list-group list-group-flush">
+                    {% for payment in payments %}
+                    <div class="list-group-item border-0">
+                        <div class="d-flex w-100 justify-content-between">
+                            <div>
+                                <div class="fw-bold">{{ payment.amount }} руб.</div>
+                                <div class="small text-muted">
+                                    {{ payment.get_payment_method_display }} • 
+                                    {{ payment.payment_date|date:"d.m.Y H:i" }}
+                                </div>
+                                {% if payment.notes %}
+                                <div class="small">{{ payment.notes }}</div>
+                                {% endif %}
+                            </div>
+                            <span class="badge {% if payment.status == 'paid' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ payment.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    Платежи отсутствуют
+                </div>
+                {% endif %}
+                <div class="card-footer bg-white border-0">
+                    <a href="/admin/payments/payment/add/?booking={{ booking.id }}" class="btn btn-sm btn-outline-primary w-100">
+                        Добавить платеж
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

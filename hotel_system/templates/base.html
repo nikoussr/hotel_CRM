@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Гостиница - Система управления{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #2c3e50;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .navbar-brand {
+            font-weight: 600;
+            color: white !important;
+        }
+        .sidebar {
+            background-color: #34495e;
+            min-height: calc(100vh - 56px);
+            padding: 20px 0;
+        }
+        .sidebar a {
+            color: #ecf0f1;
+            padding: 10px 20px;
+            display: block;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #2c3e50;
+            color: white;
+            text-decoration: none;
+        }
+        .sidebar .active {
+            background-color: #3498db;
+            font-weight: 500;
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,.05);
+            border-radius: 8px;
+        }
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eaeaea;
+            font-weight: 600;
+        }
+        .status-available { background-color: #d4edda; color: #155724; }
+        .status-booked { background-color: #fff3cd; color: #856404; }
+        .status-occupied { background-color: #f8d7da; color: #721c24; }
+        .status-maintenance { background-color: #d1ecf1; color: #0c5460; }
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<!-- Навигация -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'core:dashboard' %}">🏨 Управление гостиницей</a>
+        <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3 text-white">
+                    {% if user.is_authenticated %}
+                        {{ user.username }}
+                    {% endif %}
+                </span>
+            {% if user.is_authenticated %}
+            <a class="btn btn-outline-light btn-sm" href="{% url 'logout' %}">Выйти</a>
+            {% else %}
+            <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Войти</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Боковая панель -->
+        {% if user.is_authenticated %}
+        <div class="col-md-2 sidebar d-none d-md-block">
+            <a href="{% url 'core:dashboard' %}"
+               class="{% if request.resolver_match.app_name == 'core' %}active{% endif %}">
+                Календарь
+            </a>
+            <a href="{% url 'rooms:room_list' %}" class="{% if 'rooms' in request.path %}active{% endif %}">
+                Номера
+            </a>
+            <a href="{% url 'bookings:booking_list' %}" class="{% if 'bookings' in request.path %}active{% endif %}">
+                Бронирования
+            </a>
+            <a href="{% url 'bookings:guest_list' %}" class="{% if 'guests' in request.path %}active{% endif %}">
+                Гости
+            </a>
+            <a href="/admin/payments/payment/" class="{% if 'payments' in request.path %}active{% endif %}">
+                Платежи
+            </a>
+            <hr class="my-3">
+            <a href="/admin/" class="small">
+                Админ-панель
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Основной контент -->
+        <div class="{% if user.is_authenticated %}col-md-10{% else %}col-12{% endif %} content">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

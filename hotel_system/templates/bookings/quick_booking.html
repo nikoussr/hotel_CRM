@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Быстрое бронирование{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Быстрое бронирование</h4>
+                    <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                        Назад к календарю
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post" id="booking-form">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Ошибки в форме:</strong>
+                        <ul class="mb-0">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <!-- Данные гостя -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Данные гостя</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Фамилия *</label>
+                                        {{ form.guest_last_name }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Имя *</label>
+                                        {{ form.guest_first_name }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Телефон *</label>
+                                        {{ form.guest_phone }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Детали бронирования -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Детали бронирования</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Номер *</label>
+                                        {{ form.room }}
+                                        <div class="form-text">Выберите номер из доступных</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Дата заезда *</label>
+                                            {{ form.check_in_date }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Дата выезда *</label>
+                                            {{ form.check_out_date }}
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Взрослых *</label>
+                                            {{ form.adults }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Детей</label>
+                                            {{ form.children }}
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.with_child_bed }}
+                                            <label class="form-check-label" for="{{ form.with_child_bed.id_for_label }}">
+                                                Детская кровать ({{ form.instance.room.child_bed_price|default:500 }} руб./сутки)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Расчет стоимости -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Расчет стоимости</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="price-calculation">
+                                <div class="text-center text-muted py-4">
+                                    Выберите номер и даты для расчета стоимости
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="reset" class="btn btn-outline-secondary">
+                            Сбросить
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            Подтвердить бронирование
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roomSelect = document.querySelector('#{{ form.room.id_for_label }}');
+    const checkInInput = document.querySelector('#{{ form.check_in_date.id_for_label }}');
+    const checkOutInput = document.querySelector('#{{ form.check_out_date.id_for_label }}');
+    const priceDiv = document.querySelector('#price-calculation');
+
+    function updatePriceCalculation() {
+        const roomId = roomSelect.value;
+        const checkIn = checkInInput.value;
+        const checkOut = checkOutInput.value;
+
+        if (roomId && checkIn && checkOut) {
+            // Отправляем AJAX запрос для расчета стоимости
+            fetch('{% url "bookings:check_availability" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: new URLSearchParams({
+                    'room_id': roomId,
+                    'check_in': checkIn,
+                    'check_out': checkOut
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    priceDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                } else {
+                    let html = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td>Номер:</td>
+                                        <td class="fw-bold">${data.room_number}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Вместимость:</td>
+                                        <td>${data.room_capacity} чел.</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Количество ночей:</td>
+                                        <td>${data.nights}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert ${data.available ? 'alert-success' : 'alert-danger'}">
+                                    <strong>${data.available ? 'Доступен' : 'Не доступен'}</strong>
+                                </div>
+                                ${data.available ? `
+                                    <div class="fw-bold fs-5">
+                                        Примерная стоимость: ${data.estimated_price.toFixed(2)} руб.
+                                    </div>
+                                    <small class="text-muted">*Окончательная сумма будет рассчитана с учетом скидок</small>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                    priceDiv.innerHTML = html;
+                }
+            })
+            .catch(error => {
+                priceDiv.innerHTML = `<div class="alert alert-danger">Ошибка при расчете стоимости</div>`;
+            });
+        }
+    }
+
+    // Обновляем расчет при изменении полей
+    [roomSelect, checkInInput, checkOutInput].forEach(element => {
+        element.addEventListener('change', updatePriceCalculation);
+    });
+
+    // Инициализируем расчет если поля уже заполнены
+    if (roomSelect.value && checkInInput.value && checkOutInput.value) {
+        updatePriceCalculation();
+    }
+});
+</script>
+{% endblock %}

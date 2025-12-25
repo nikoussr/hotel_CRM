@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">{{ title }}</h4>
+                    <a href="{% if guest %}{% url 'bookings:guest_detail' guest.id %}{% else %}{% url 'bookings:guest_list' %}{% endif %}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        Отмена
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Исправьте ошибки:</strong>
+                        <ul class="mb-0">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                            <li>{{ field }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Фамилия *</label>
+                            {{ form.last_name }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Имя *</label>
+                            {{ form.first_name }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Отчество</label>
+                        {{ form.middle_name }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Телефон *</label>
+                        {{ form.phone }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        {{ form.email }}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Паспортные данные</label>
+                        {{ form.passport_data }}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="reset" class="btn btn-outline-secondary">
+                            Сбросить
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            Сохранить гостя
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
