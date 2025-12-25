@@ -88,6 +88,9 @@ class QuickBookingForm(forms.ModelForm):
         booking = super().save(commit=False)
         booking.guest = guest
 
+        # Автоматически устанавливаем статус "confirmed"
+        booking.status = 'confirmed'
+
         if commit:
             booking.save()
             # Обновляем статус номера

@@ -116,35 +116,36 @@
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
-                            <tr>
-                                <th>Гость</th>
-                                <th>Дата заезда</th>
-                                <th>Дата выезда</th>
-                                <th>Статус</th>
-                                <th>Действия</th>
-                            </tr>
+                        <tr>
+                            <th>Гость</th>
+                            <th>Дата заезда</th>
+                            <th>Дата выезда</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {% for booking in active_bookings %}
-                            <tr>
-                                <td>
-                                    <div class="fw-bold">{{ booking.guest }}</div>
-                                    <div class="small text-muted">{{ booking.guest.phone }}</div>
-                                </td>
-                                <td>{{ booking.check_in_date|date:"d.m.Y" }}</td>
-                                <td>{{ booking.check_out_date|date:"d.m.Y" }}</td>
-                                <td>
+                        {% for booking in active_bookings %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ booking.guest }}</div>
+                                <div class="small text-muted">{{ booking.guest.phone }}</div>
+                            </td>
+                            <td>{{ booking.check_in_date|date:"d.m.Y" }}</td>
+                            <td>{{ booking.check_out_date|date:"d.m.Y" }}</td>
+                            <td>
                                     <span class="badge {% if booking.status == 'confirmed' %}bg-info text-white{% elif booking.status == 'pending_checkin' %}bg-warning text-white{% else %}bg-success text-white{% endif %}">
                                         {{ booking.get_status_display }}
                                     </span>
-                                </td>
-                                <td>
-                                    <a href="{% url 'admin:bookings_booking_change' booking.id %}" class="btn btn-sm btn-outline-primary">
-                                        Детали
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
+                            </td>
+                            <td>
+                                <a href="{% url 'admin:bookings_booking_change' booking.id %}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Детали
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>

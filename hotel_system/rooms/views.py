@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.views.decorators.http import require_POST
+from bookings.models import Booking
 from .models import Room, RoomCategory
 from .forms import RoomForm
 
@@ -103,7 +105,7 @@ def room_update(request, room_id):
         'title': f'Редактирование номера {room.number}',
     }
 
-    return render(request, 'rooms/room_form.html.html', context)
+    return render(request, 'rooms/room_form.html', context)
 
 
 @login_required
@@ -118,3 +120,38 @@ def room_delete(request, room_id):
         return redirect('rooms:room_list')
 
     return render(request, 'rooms/room_confirm_delete.html', {'room': room})
+
+
+@login_required
+@require_POST
+def room_update_status(request, room_id, status):
+    """Быстрое изменение статуса номера"""
+    room = get_object_or_404(Room, id=room_id)
+
+    # Проверяем, что статус допустимый
+    valid_statuses = dict(Room.RoomStatus.choices).keys()
+    if status not in valid_statuses:
+        messages.error(request, 'Недопустимый статус')
+        return redirect('rooms:room_detail', room_id=room.id)
+
+    # Проверяем, можно ли изменить статус
+    if status == 'occupied' and room.status != 'booked':
+        messages.error(request, 'Невозможно занять номер без бронирования')
+    elif status == 'available' and room.status == 'occupied':
+        # Проверяем, есть ли активные бронирования
+        active_bookings = Booking.objects.filter(
+            room=room,
+            status__in=['active', 'confirmed']
+        ).exists()
+        if active_bookings:
+            messages.error(request, 'Невозможно освободить номер с активными бронированиями')
+            return redirect('rooms:room_detail', room_id=room.id)
+        else:
+            room.status = status
+            messages.success(request, f'Статус номера изменен на "{room.get_status_display()}"')
+    else:
+        room.status = status
+        messages.success(request, f'Статус номера изменен на "{room.get_status_display()}"')
+
+    room.save()
+    return redirect('rooms:room_detail', room_id=room.id)

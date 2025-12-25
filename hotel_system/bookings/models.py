@@ -2,7 +2,8 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from rooms.models import Room
 from decimal import Decimal
-
+from django.utils import timezone
+from rooms.models import Room
 
 class Guest(models.Model):
     """Гость/клиент"""
@@ -181,8 +182,8 @@ class Booking(models.Model):
 
     def check_in(self):
         """Зарегистрировать заезд"""
-        from django.utils import timezone
-        if self.status == self.BookingStatus.PENDING_CHECKIN:
+        # Можно заселить из статусов "confirmed" или "pending_checkin"
+        if self.status in [self.BookingStatus.CONFIRMED, self.BookingStatus.PENDING_CHECKIN]:
             self.status = self.BookingStatus.ACTIVE
             self.actual_check_in = timezone.now()
             self.room.status = Room.RoomStatus.OCCUPIED
@@ -193,7 +194,6 @@ class Booking(models.Model):
 
     def check_out(self):
         """Зарегистрировать выезд"""
-        from django.utils import timezone
         if self.status == self.BookingStatus.ACTIVE:
             self.status = self.BookingStatus.COMPLETED
             self.actual_check_out = timezone.now()

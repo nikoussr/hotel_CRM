@@ -3,6 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from datetime import datetime, timedelta
+
+from django.views.decorators.http import require_POST
+
 from .utils import get_calendar_data, get_week_dates, get_navigation_dates
 from bookings.models import Booking, Guest
 from rooms.models import Room
@@ -76,6 +79,7 @@ def dashboard(request):
 
 
 @login_required
+@require_POST
 def quick_checkin(request, booking_id):
     """Быстрая регистрация заезда"""
     try:
@@ -83,7 +87,8 @@ def quick_checkin(request, booking_id):
         if booking.check_in():
             messages.success(request, f'Гость {booking.guest} успешно зарегистрирован в номере {booking.room.number}')
         else:
-            messages.error(request, 'Невозможно зарегистрировать заезд для этого бронирования')
+            messages.error(request,
+                           f'Невозможно зарегистрировать заезд. Текущий статус: {booking.get_status_display()}')
     except Booking.DoesNotExist:
         messages.error(request, 'Бронирование не найдено')
 
@@ -91,6 +96,7 @@ def quick_checkin(request, booking_id):
 
 
 @login_required
+@require_POST
 def quick_checkout(request, booking_id):
     """Быстрая регистрация выезда"""
     try:
@@ -98,7 +104,8 @@ def quick_checkout(request, booking_id):
         if booking.check_out():
             messages.success(request, f'Гость {booking.guest} успешно выселен из номера {booking.room.number}')
         else:
-            messages.error(request, 'Невозможно зарегистрировать выезд для этого бронирования')
+            messages.error(request,
+                           f'Невозможно зарегистрировать выезд. Текущий статус: {booking.get_status_display()}')
     except Booking.DoesNotExist:
         messages.error(request, 'Бронирование не найдено')
 
