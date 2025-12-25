@@ -267,3 +267,71 @@ def booking_detail(request, booking_id):
     }
 
     return render(request, 'bookings/booking_detail.html', context)
+
+
+@login_required
+def booking_manage(request, booking_id):
+    """Управление бронированием: заселение, выселение, отмена"""
+    booking = get_object_or_404(Booking.objects.select_related('guest', 'room'), id=booking_id)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'check_in':
+            if booking.check_in():
+                messages.success(request, f'Гость {booking.guest} успешно заселен в номер {booking.room.number}')
+            else:
+                messages.error(request, f'Невозможно заселить. Текущий статус: {booking.get_status_display()}')
+
+        elif action == 'check_out':
+            if booking.check_out():
+                messages.success(request, f'Гость {booking.guest} успешно выселен из номера {booking.room.number}')
+            else:
+                messages.error(request, f'Невозможно выселить. Текущий статус: {booking.get_status_display()}')
+
+        elif action == 'cancel':
+            if booking.cancel_booking():
+                messages.success(request, f'Бронирование #{booking.id} успешно отменено')
+            else:
+                messages.error(request, f'Невозможно отменить. Текущий статус: {booking.get_status_display()}')
+
+        return redirect('bookings:booking_manage', booking_id=booking.id)
+
+    context = {
+        'booking': booking,
+    }
+
+    return render(request, 'bookings/booking_manage.html', context)
+
+
+@login_required
+def booking_update_dates(request, booking_id):
+    """Обновление фактических дат заезда/выезда"""
+    booking = get_object_or_404(Booking, id=booking_id)
+
+    if request.method == 'POST':
+        actual_check_in = request.POST.get('actual_check_in')
+        actual_check_out = request.POST.get('actual_check_out')
+
+        try:
+            if actual_check_in:
+                from django.utils.dateparse import parse_datetime
+                check_in_dt = parse_datetime(actual_check_in)
+                if check_in_dt:
+                    booking.actual_check_in = check_in_dt
+
+            if actual_check_out:
+                from django.utils.dateparse import parse_datetime
+                check_out_dt = parse_datetime(actual_check_out)
+                if check_out_dt:
+                    booking.actual_check_out = check_out_dt
+
+            booking.save()
+            messages.success(request, 'Фактические даты успешно обновлены')
+
+        except Exception as e:
+            messages.error(request, f'Ошибка при обновлении дат: {str(e)}')
+
+        return redirect('bookings:booking_manage', booking_id=booking.id)
+
+    return redirect('bookings:booking_detail', booking_id=booking_id)

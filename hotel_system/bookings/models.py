@@ -182,35 +182,65 @@ class Booking(models.Model):
 
     def check_in(self):
         """Зарегистрировать заезд"""
+        from django.utils import timezone
+        from rooms.models import Room
+
+        # Проверяем текущий статус
+        print(
+            f"DEBUG check_in: current status = {self.status}, allowed = {[self.BookingStatus.CONFIRMED, self.BookingStatus.PENDING_CHECKIN]}")
+
         # Можно заселить из статусов "confirmed" или "pending_checkin"
-        if self.status in [self.BookingStatus.CONFIRMED, self.BookingStatus.PENDING_CHECKIN]:
+        allowed_statuses = [self.BookingStatus.CONFIRMED, self.BookingStatus.PENDING_CHECKIN]
+
+        if str(self.status) in allowed_statuses:
             self.status = self.BookingStatus.ACTIVE
             self.actual_check_in = timezone.now()
+
+            # Обновляем статус номера
             self.room.status = Room.RoomStatus.OCCUPIED
             self.room.save()
-            self.save()
+
+            self.save(force_update=True)
+            print(f"DEBUG check_in: success, new status = {self.status}")
             return True
+
+        print(f"DEBUG check_in: failed")
         return False
 
     def check_out(self):
         """Зарегистрировать выезд"""
-        if self.status == self.BookingStatus.ACTIVE:
+        if str(self.status) == self.BookingStatus.ACTIVE:
             self.status = self.BookingStatus.COMPLETED
             self.actual_check_out = timezone.now()
+
+            # Обновляем статус номера
             self.room.status = Room.RoomStatus.MAINTENANCE
             self.room.save()
-            self.save()
+
+            self.save(force_update=True)
+            print(f"DEBUG check_out: success, new status = {self.status}")
             return True
+
+        print(f"DEBUG check_out: failed")
         return False
 
     def cancel_booking(self):
         """Отменить бронирование"""
-        if self.status in [self.BookingStatus.CONFIRMED, self.BookingStatus.PENDING_CHECKIN]:
+        # Можно отменить из статусов "confirmed" или "pending_checkin"
+        allowed_statuses = [self.BookingStatus.CONFIRMED, self.BookingStatus.PENDING_CHECKIN]
+
+        if str(self.status) in allowed_statuses:
             self.status = self.BookingStatus.CANCELLED
+
+            # Освобождаем номер
             self.room.status = Room.RoomStatus.AVAILABLE
             self.room.save()
-            self.save()
+
+            self.save(force_update=True)
+            print(f"DEBUG cancel: success, new status = {self.status}")
             return True
+
+        print(f"DEBUG cancel: failed")
         return False
 
     def get_nights_count(self):
